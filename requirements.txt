@@ -1,0 +1,6 @@
+fastapi==0.111.0
+uvicorn==0.29.0
+python-multipart==0.0.9
+pytz==2024.1
+requests==2.31.0
+aiofiles==23.2.1
