@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🟢 Green Light — Agente Conversacional</title>
+<style>
+/* ── Reset & Base ─────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  background: #0f1117;
+  color: #e8e8e8;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── Top Bar ──────────────────────────────────────────────────────────── */
+#topbar {
+  background: #1a1d27;
+  border-bottom: 2px solid #f5a62322;
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  z-index: 10;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.4);
+}
+.logo {
+  font-size: 18px;
+  font-weight: 700;
+  color: #f5a623;
+  letter-spacing: -0.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.logo .logo-icon { font-size: 20px; }
+.logo .logo-name { color: #e8e8e8; }
+.logo-badge {
+  font-size: 9px;
+  background: #f5a62322;
+  color: #f5a623;
+  border: 1px solid #f5a62344;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+#user-fields {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+#user-fields input {
+  background: #0f1117;
+  border: 1px solid #2a2d3a;
+  color: #e8e8e8;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  width: 150px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: inherit;
+}
+#user-fields input:focus {
+  outline: none;
+  border-color: #f5a623;
+  box-shadow: 0 0 0 3px rgba(245,166,35,0.12);
+}
+#user-fields input::placeholder { color: #444; }
+</style>
+</head>
+<body>
+<!-- PLACEHOLDER: Full agent UI -->
+</body>
+</html>
