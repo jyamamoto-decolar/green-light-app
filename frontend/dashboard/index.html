@@ -2,10 +2,1033 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
 <title>Green Light — Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f1117;color:#e8e8e8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;min-height:100vh;font-size:14px}
+
+/* ── TOP BAR ── */
+#topbar{background:#1a1d27;border-bottom:1px solid #2a2d3a;padding:0 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;height:56px;gap:16px}
+.logo{font-size:19px;font-weight:700;color:#f5a623;white-space:nowrap;flex-shrink:0}
+.logo span{color:#e8e8e8;font-weight:400}
+.tabs{display:flex;gap:2px;flex-shrink:0}
+.tab{padding:6px 15px;border-radius:6px;cursor:pointer;font-size:13px;color:#888;transition:all .18s;border:none;background:none;white-space:nowrap}
+.tab.active{background:#f5a62320;color:#f5a623;font-weight:600}
+.tab:hover:not(.active){color:#e8e8e8;background:#ffffff0a}
+.topbar-right{display:flex;gap:10px;align-items:center;flex-shrink:0}
+#username-input{background:#0f1117;border:1px solid #2a2d3a;color:#e8e8e8;padding:5px 11px;border-radius:6px;font-size:13px;width:160px;transition:border-color .15s;outline:none}
+#username-input:focus{border-color:#f5a623}
+#username-input::placeholder{color:#555}
+.btn-primary{background:#f5a623;color:#0f1117;border:none;padding:7px 15px;border-radius:6px;font-weight:600;font-size:13px;cursor:pointer;white-space:nowrap;transition:opacity .15s}
+.btn-primary:hover{opacity:.85}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+
+/* ── LAYOUT ── */
+#main{padding:24px;max-width:1400px;margin:0 auto}
+.section{display:none}.section.active{display:block}
+
+/* ── KPI CARDS ── */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.kpi-card{background:#1a1d27;border:1px solid #2a2d3a;border-radius:10px;padding:20px 22px;transition:border-color .18s}
+.kpi-card:hover{border-color:#3a3d4a}
+.kpi-card .label{font-size:11px;color:#666;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
+.kpi-card .value{font-size:34px;font-weight:700;line-height:1}
+.kpi-card .sub{font-size:11px;color:#555;margin-top:6px}
+.kpi-card.accent .value{color:#f5a623}
+.kpi-card.risk .value{color:#ff6464}
+.kpi-card.ok .value{color:#0ca789}
+.kpi-card.blue .value{color:#5b83e0}
+
+/* ── FILTERS ── */
+.filter-bar{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center}
+.filter-bar select,.filter-bar input[type=text]{background:#1a1d27;border:1px solid #2a2d3a;color:#e8e8e8;padding:7px 11px;border-radius:6px;font-size:13px;outline:none;transition:border-color .15s}
+.filter-bar select:focus,.filter-bar input[type=text]:focus{border-color:#f5a623}
+.filter-bar input[type=text]{width:220px}
+
+/* ── INITIATIVE GRID ── */
+.init-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-bottom:28px}
+.init-card{background:#1a1d27;border:1px solid #2a2d3a;border-radius:10px;padding:16px;cursor:pointer;transition:border-color .18s,box-shadow .18s}
+.init-card:hover{border-color:#f5a623;box-shadow:0 0 0 1px #f5a62340}
+.init-card.risk-border-critical{border-left:3px solid #ff4444}
+.init-card.risk-border-high{border-left:3px solid #ff6464}
+.init-card .card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:8px}
+.init-card .qc-id{font-size:11px;color:#555;font-weight:600;letter-spacing:.3px}
+.init-card .title{font-size:14px;font-weight:600;margin-bottom:5px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.init-card .meta{font-size:12px;color:#666;margin-bottom:10px}
+.init-card .prog-wrap{background:#2a2d3a;border-radius:3px;height:4px;overflow:hidden;margin-bottom:6px}
+.init-card .prog-fill{height:100%;background:#0ca789;border-radius:3px;transition:width .3s}
+.init-card .prog-label{font-size:11px;color:#555;margin-bottom:8px}
+.init-card .card-footer{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.days-badge{font-size:11px;color:#555;margin-left:auto}
+
+/* ── RISK / STATUS BADGES ── */
+.risk-badge{padding:2px 9px;border-radius:12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap}
+.risk-low{background:#0ca78922;color:#0ca789}
+.risk-medium{background:#f5a62322;color:#f5a623}
+.risk-high{background:#ff646430;color:#ff6464}
+.risk-critical{background:#ff000040;color:#ff4444;animation:pulse 1.4s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
+.status-badge{padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500;white-space:nowrap}
+.status-under_review{background:#305bab25;color:#5b83e0}
+.status-approved{background:#0ca78922;color:#0ca789}
+.status-blocked{background:#ff646420;color:#ff6464}
+.status-draft{background:#44444422;color:#888}
+.status-archived{background:#22222222;color:#666}
+.status-pending{background:#f5a62320;color:#f5a623}
+.status-rejected{background:#ff646420;color:#ff6464}
+.status-needs_clarification{background:#305bab25;color:#5b83e0}
+
+/* ── AUTHORITY ALERTS ── */
+.section-title{font-size:15px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px;color:#e8e8e8}
+.alert-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px;margin-bottom:8px}
+.alert-card{background:#1a1d27;border-left:3px solid #ff6464;border-radius:0 8px 8px 0;padding:14px 16px}
+.alert-card.warn{border-color:#f5a623}
+.alert-card .alert-badge{font-size:10px;color:#ff6464;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+.alert-card.warn .alert-badge{color:#f5a623}
+.alert-card .alert-title{font-size:14px;font-weight:600;margin-bottom:3px}
+.alert-card .alert-desc{font-size:12px;color:#aaa;line-height:1.5}
+
+/* ── TABLE ── */
+.table-wrap{overflow-x:auto;background:#1a1d27;border-radius:10px;border:1px solid #2a2d3a;margin-bottom:20px}
+table{width:100%;border-collapse:collapse;min-width:800px}
+th{padding:11px 14px;text-align:left;font-size:11px;color:#666;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #2a2d3a;white-space:nowrap}
+td{padding:11px 14px;font-size:13px;border-bottom:1px solid #1a1d2740;vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:#ffffff06;cursor:pointer}
+.tbl-actions{display:flex;gap:6px;align-items:center}
+.btn-xs{padding:4px 10px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;border:none;transition:all .15s;white-space:nowrap}
+.btn-view{background:#305bab22;color:#5b83e0}.btn-view:hover{background:#305bab;color:#fff}
+.btn-archive{background:#44444420;color:#888}.btn-archive:hover{background:#444;color:#fff}
+
+/* ── DETAIL PANEL ── */
+#detail-panel{position:fixed;right:0;top:0;height:100vh;width:520px;background:#1a1d27;border-left:1px solid #2a2d3a;transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);overflow-y:auto;z-index:200;padding:24px}
+#detail-panel.open{transform:translateX(0)}
+.panel-close{float:right;background:none;border:none;color:#666;font-size:20px;cursor:pointer;line-height:1;padding:2px 4px;transition:color .15s}
+.panel-close:hover{color:#e8e8e8}
+.panel-section{margin-bottom:20px}
+.panel-section-title{font-size:12px;color:#666;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #2a2d3a}
+.dl-row{display:flex;gap:12px;margin-bottom:9px;align-items:baseline}
+.dl-row dt{font-size:11px;color:#666;text-transform:uppercase;letter-spacing:.4px;min-width:130px;flex-shrink:0}
+.dl-row dd{font-size:13px;color:#e8e8e8;word-break:break-word}
+.panel-validations-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px}
+.panel-validations-table th{padding:7px 10px;text-align:left;color:#666;font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.4px;border-bottom:1px solid #2a2d3a}
+.panel-validations-table td{padding:7px 10px;border-bottom:1px solid #2a2d3a20;vertical-align:top}
+.panel-validations-table tr:last-child td{border-bottom:none}
+.meet-entry{background:#0f1117;border-radius:6px;padding:10px 12px;margin-bottom:8px;font-size:12px}
+.meet-entry .meet-date{font-weight:600;color:#e8e8e8;margin-bottom:3px}
+.meet-entry .meet-meta{color:#666;margin-bottom:4px}
+.meet-entry a{color:#5b83e0;text-decoration:none}
+.meet-entry a:hover{text-decoration:underline}
+.timeline-entry{background:#0f1117;border-radius:6px;padding:10px 12px;margin-bottom:8px}
+.timeline-entry .te-meta{font-size:11px;color:#555;margin-bottom:4px}
+.timeline-entry .te-content{font-size:12px;color:#aaa}
+.flag-block{background:#ff646410;border-left:2px solid #ff6464;padding:8px 10px;border-radius:0 4px 4px 0;margin-bottom:6px}
+.flag-block .flag-level{font-size:10px;color:#ff6464;font-weight:700;text-transform:uppercase;margin-bottom:3px}
+.flag-block .flag-desc{font-size:12px;color:#e8e8e8;line-height:1.5}
+
+/* ── VALIDATION PANEL ── */
+#val-detail-panel{position:fixed;right:0;top:0;height:100vh;width:560px;background:#1a1d27;border-left:1px solid #2a2d3a;transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);overflow-y:auto;z-index:250;padding:24px}
+#val-detail-panel.open{transform:translateX(0)}
+.val-action-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:18px}
+.btn-approve{background:#0ca78920;color:#0ca789;border:1px solid #0ca78940;border-radius:7px;padding:12px 8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;text-align:center}
+.btn-approve:hover,.btn-approve.active{background:#0ca789;color:#fff;border-color:#0ca789}
+.btn-reject{background:#ff646420;color:#ff6464;border:1px solid #ff646440;border-radius:7px;padding:12px 8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;text-align:center}
+.btn-reject:hover,.btn-reject.active{background:#ff6464;color:#fff;border-color:#ff6464}
+.btn-meet-action{background:#f5a62320;color:#f5a623;border:1px solid #f5a62340;border-radius:7px;padding:12px 8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;text-align:center}
+.btn-meet-action:hover,.btn-meet-action.active{background:#f5a623;color:#0f1117;border-color:#f5a623}
+.comment-area{width:100%;background:#0f1117;border:1px solid #2a2d3a;color:#e8e8e8;padding:9px 12px;border-radius:6px;font-size:13px;resize:vertical;min-height:80px;margin-top:12px;transition:border-color .15s;font-family:inherit}
+.comment-area:focus{outline:none;border-color:#f5a623}
+.val-submit-row{display:flex;gap:10px;margin-top:12px;justify-content:flex-end}
+
+/* ── MEETING MODAL ── */
+#modal-overlay{display:none;position:fixed;inset:0;background:#00000090;z-index:300;align-items:center;justify-content:center}
+#modal-overlay.open{display:flex}
+#modal-box{background:#1a1d27;border:1px solid #2a2d3a;border-radius:12px;padding:28px;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto}
+#modal-box h3{margin-bottom:6px;font-size:16px;color:#e8e8e8}
+#modal-box .modal-sub{font-size:13px;color:#666;margin-bottom:20px;line-height:1.5}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
+.form-group input,.form-group textarea{width:100%;background:#0f1117;border:1px solid #2a2d3a;color:#e8e8e8;padding:8px 12px;border-radius:6px;font-size:13px;outline:none;transition:border-color .15s;font-family:inherit}
+.form-group input:focus,.form-group textarea:focus{border-color:#f5a623}
+.form-group textarea{resize:vertical;min-height:80px}
+.modal-actions{display:flex;gap:10px;margin-top:20px;justify-content:flex-end}
+.btn-secondary{background:none;border:1px solid #2a2d3a;color:#888;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:13px;transition:all .15s}
+.btn-secondary:hover{border-color:#666;color:#e8e8e8}
+.m-result{margin-top:14px;padding:12px 14px;border-radius:6px;font-size:13px;display:none;line-height:1.5}
+.m-result.ok{background:#0ca78918;color:#0ca789;border:1px solid #0ca78930}
+.m-result.info{background:#305bab18;color:#5b83e0;border:1px solid #305bab30}
+.m-result.err{background:#ff646418;color:#ff6464;border:1px solid #ff646430}
+
+/* ── MY VALIDATIONS TAB ── */
+.val-team-bar{display:flex;gap:10px;align-items:center;margin-bottom:20px;flex-wrap:wrap}
+.val-team-bar input{background:#1a1d27;border:1px solid #2a2d3a;color:#e8e8e8;padding:8px 14px;border-radius:6px;font-size:14px;width:280px;outline:none;transition:border-color .15s;font-family:inherit}
+.val-team-bar input:focus{border-color:#f5a623}
+.pending-card{background:#1a1d27;border:1px solid #2a2d3a;border-radius:10px;padding:16px;margin-bottom:12px;cursor:pointer;transition:border-color .18s}
+.pending-card:hover{border-color:#f5a623}
+.pending-card.risk-critical-card{border-left:3px solid #ff4444}
+.pending-card.risk-high-card{border-left:3px solid #ff6464}
+.pending-card .pc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:12px}
+.pending-card .pc-title{font-size:14px;font-weight:600;line-height:1.3}
+.pending-card .pc-meta{font-size:12px;color:#666;margin-top:4px}
+
+/* ── MEMORY TAB ── */
+.memory-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+.mem-card{background:#1a1d27;border:1px solid #2a2d3a;border-radius:10px;padding:16px}
+.mem-card h4{font-size:11px;color:#666;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
+.mem-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #2a2d3a20;font-size:13px}
+.mem-row:last-child{border-bottom:none}
+.mem-count{background:#305bab22;color:#5b83e0;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.mem-search-bar{display:flex;gap:10px;margin-bottom:16px;align-items:center}
+.mem-search-bar input{background:#1a1d27;border:1px solid #2a2d3a;color:#e8e8e8;padding:7px 12px;border-radius:6px;font-size:13px;width:280px;outline:none;transition:border-color .15s}
+.mem-search-bar input:focus{border-color:#f5a623}
+.mem-timeline{display:flex;flex-direction:column;gap:10px}
+.mem-tl-item{background:#1a1d27;border:1px solid #2a2d3a;border-radius:8px;padding:12px 14px}
+.mem-tl-item .mti-meta{font-size:11px;color:#555;margin-bottom:5px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.mem-tl-item .mti-type{background:#305bab22;color:#5b83e0;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600;text-transform:uppercase}
+.mem-tl-item .mti-content{font-size:13px;color:#ccc;line-height:1.5}
+
+/* ── SEED BANNER ── */
+.seed-banner{background:#1a1d27;border:1px dashed #2a2d3a;border-radius:10px;padding:40px 32px;text-align:center;margin-bottom:20px}
+.seed-banner p{color:#666;margin-bottom:16px;font-size:14px}
+.seed-banner .seed-title{font-size:17px;font-weight:600;color:#888;margin-bottom:8px}
+
+/* ── MISC ── */
+.empty{text-align:center;padding:40px 20px;color:#555;font-size:13px}
+.overlay-bg{position:fixed;inset:0;background:#00000060;z-index:190;display:none}
+.overlay-bg.open{display:block}
+.loading{color:#666;font-size:13px;padding:20px;text-align:center}
+.tag-chip{display:inline-block;background:#305bab18;color:#5b83e0;padding:2px 8px;border-radius:10px;font-size:11px;margin:2px}
+.info-notice{background:#305bab12;border:1px solid #305bab30;border-radius:8px;padding:12px 14px;font-size:13px;color:#5b83e0;line-height:1.6;margin-bottom:16px}
+.success-notice{background:#0ca78912;border:1px solid #0ca78930;border-radius:8px;padding:12px 14px;font-size:13px;color:#0ca789;line-height:1.6;margin-bottom:16px}
+
+@media(max-width:1280px){
+  .kpi-row{grid-template-columns:repeat(2,1fr)}
+  .memory-grid{grid-template-columns:1fr}
+  #detail-panel,#val-detail-panel{width:100vw}
+}
+@media(max-width:720px){
+  .tabs{display:none}
+  .kpi-row{grid-template-columns:1fr 1fr}
+  #main{padding:16px}
+}
+</style>
 </head>
 <body>
-<!-- Full dashboard UI served by main.py from frontend/dashboard/index.html -->
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <div class="logo">🟢 Green <span>Light</span></div>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('dashboard',this)">Dashboard</button>
+    <button class="tab" onclick="switchTab('initiatives',this)">Iniciativas</button>
+    <button class="tab" onclick="switchTab('myvalidations',this)">Mis Validaciones</button>
+    <button class="tab" onclick="switchTab('memory',this)">Memoria</button>
+  </div>
+  <div class="topbar-right">
+    <input type="text" id="username-input" placeholder="Tu nombre / equipo" />
+    <button class="btn-primary" onclick="window.location='/agent'">+ Nueva Iniciativa</button>
+  </div>
+</div>
+
+<!-- OVERLAY for panels -->
+<div class="overlay-bg" id="overlay-bg" onclick="closeAllPanels()"></div>
+
+<div id="main">
+
+  <!-- TAB 1: DASHBOARD -->
+  <div id="section-dashboard" class="section active">
+    <div class="kpi-row">
+      <div class="kpi-card blue">
+        <div class="label">Iniciativas Activas</div>
+        <div class="value" id="kpi-total">—</div>
+        <div class="sub">No archivadas</div>
+      </div>
+      <div class="kpi-card accent">
+        <div class="label">Validaciones Pendientes</div>
+        <div class="value" id="kpi-pending">—</div>
+        <div class="sub">En espera de aprobación</div>
+      </div>
+      <div class="kpi-card risk">
+        <div class="label">Iniciativas en Riesgo</div>
+        <div class="value" id="kpi-risk">—</div>
+        <div class="sub">High + Critical</div>
+      </div>
+      <div class="kpi-card ok">
+        <div class="label">Aprobadas este mes</div>
+        <div class="value" id="kpi-approved">—</div>
+        <div class="sub">Completadas</div>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <input type="text" id="dash-search" placeholder="🔍  Buscar por título u owner..." oninput="renderDashGrid()">
+      <select id="dash-status" onchange="renderDashGrid()">
+        <option value="">Todos los estados</option>
+        <option value="under_review">En revisión</option>
+        <option value="approved">Aprobada</option>
+        <option value="blocked">Bloqueada</option>
+        <option value="draft">Borrador</option>
+      </select>
+      <select id="dash-risk" onchange="renderDashGrid()">
+        <option value="">Todos los riesgos</option>
+        <option value="critical">Crítico</option>
+        <option value="high">Alto</option>
+        <option value="medium">Medio</option>
+        <option value="low">Bajo</option>
+      </select>
+      <select id="dash-team" onchange="renderDashGrid()">
+        <option value="">Todos los equipos</option>
+      </select>
+      <select id="dash-area" onchange="renderDashGrid()">
+        <option value="">Todas las áreas</option>
+      </select>
+    </div>
+
+    <div id="seed-banner" class="seed-banner" style="display:none">
+      <div class="seed-title">🚀 Bienvenido a Green Light</div>
+      <p>No hay iniciativas cargadas aún. Podés cargar datos de demostración para explorar el dashboard.</p>
+      <button class="btn-primary" onclick="seedDemoData()" id="seed-btn">🌱 Cargar datos demo</button>
+    </div>
+
+    <div class="init-grid" id="dash-grid"></div>
+
+    <div class="section-title">⚠️ Alertas de Autoridad <span style="font-size:12px;color:#666;font-weight:400">(Matriz Prosus)</span></div>
+    <div class="alert-grid" id="authority-alerts"></div>
+  </div>
+
+  <!-- TAB 2: INITIATIVES TABLE -->
+  <div id="section-initiatives" class="section">
+    <div class="filter-bar">
+      <input type="text" id="init-search" placeholder="🔍  Buscar por título o ID..." oninput="renderInitTable()">
+      <select id="init-status-f" onchange="renderInitTable()">
+        <option value="">Todos los estados</option>
+        <option value="under_review">En revisión</option>
+        <option value="approved">Aprobada</option>
+        <option value="blocked">Bloqueada</option>
+        <option value="draft">Borrador</option>
+      </select>
+      <select id="init-risk-f" onchange="renderInitTable()">
+        <option value="">Todos los riesgos</option>
+        <option value="critical">Crítico</option>
+        <option value="high">Alto</option>
+        <option value="medium">Medio</option>
+        <option value="low">Bajo</option>
+      </select>
+      <select id="init-team-f" onchange="renderInitTable()">
+        <option value="">Todos los equipos</option>
+      </select>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>ID</th><th>Título</th><th>Owner</th><th>Equipo</th><th>Área</th><th>Riesgo</th><th>Estado</th><th>Validaciones</th><th>Creada</th><th>Acciones</th>
+        </tr></thead>
+        <tbody id="init-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB 3: MIS VALIDACIONES -->
+  <div id="section-myvalidations" class="section">
+    <div class="val-team-bar">
+      <input type="text" id="val-team-input" placeholder="Nombre de tu equipo (ej: Legal, Tax, Finance...)" />
+      <button class="btn-primary" onclick="loadMyValidations()">Ver pendientes</button>
+    </div>
+    <div id="my-val-list"><div class="empty">Ingresá tu equipo para ver las validaciones pendientes.</div></div>
+  </div>
+
+  <!-- TAB 4: MEMORIA -->
+  <div id="section-memory" class="section">
+    <div class="section-title">💡 Patrones identificados</div>
+    <div class="memory-grid" style="margin-bottom:28px">
+      <div class="mem-card">
+        <h4>Equipos más solicitados para validación</h4>
+        <div id="mem-teams"><div class="loading">Cargando...</div></div>
+      </div>
+      <div class="mem-card">
+        <h4>Riesgo por área de producto</h4>
+        <div id="mem-risks"><div class="loading">Cargando...</div></div>
+      </div>
+    </div>
+
+    <div class="section-title">🕐 Decisiones recientes</div>
+    <div class="mem-search-bar">
+      <input type="text" id="mem-search" placeholder="Buscar por tags o ID de iniciativa..." oninput="filterMemTimeline()">
+    </div>
+    <div class="mem-timeline" id="mem-timeline"><div class="loading">Cargando...</div></div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- DETAIL PANEL -->
+<div id="detail-panel">
+  <button class="panel-close" onclick="closeDetail()">✕</button>
+  <div id="detail-content"><div class="loading">Cargando...</div></div>
+</div>
+
+<!-- VALIDATION DETAIL PANEL -->
+<div id="val-detail-panel">
+  <button class="panel-close" onclick="closeValDetail()">✕</button>
+  <div id="val-detail-content"><div class="loading">Cargando...</div></div>
+</div>
+
+<!-- MEETING REQUEST MODAL -->
+<div id="modal-overlay" onclick="handleModalOverlayClick(event)">
+  <div id="modal-box">
+    <h3>❓ Solicitar reunión de clarificación</h3>
+    <div class="modal-sub">No hay integración con calendario por ahora. Tu solicitud quedará registrada y el equipo coordinará la reunión manualmente.</div>
+    <div class="form-group">
+      <label>Tu nombre</label>
+      <input type="text" id="m-rname" placeholder="Nombre del validador">
+    </div>
+    <div class="form-group">
+      <label>Tu email <span style="color:#555;font-size:10px">(para contactarte)</span></label>
+      <input type="email" id="m-remail" placeholder="email@empresa.com">
+    </div>
+    <div class="form-group">
+      <label>¿Qué necesitás aclarar?</label>
+      <textarea id="m-reason" rows="3" placeholder="Describí la duda o punto que necesitás discutir con el equipo..."></textarea>
+    </div>
+    <div id="m-result" class="m-result"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn-primary" id="m-submit-btn" onclick="submitMeetingRequest()">📩 Registrar solicitud</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '';
+let allInitiatives = [];
+let allMemoryEntries = [];
+let currentValId = null;
+let currentValInitId = null;
+let currentValOwnerName = '';
+let currentValOwnerEmail = '';
+let currentValTeam = '';
+let pendingAction = null;
+
+function switchTab(name, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('section-' + name).classList.add('active');
+  el.classList.add('active');
+  if (name === 'dashboard') loadDashboard();
+  else if (name === 'initiatives') { if (!allInitiatives.length) loadDashboard().then(() => renderInitTable()); else renderInitTable(); }
+  else if (name === 'memory') loadMemory();
+}
+
+async function loadDashboard() {
+  try {
+    const [stats, inits] = await Promise.all([
+      fetch(API + '/api/initiatives/stats').then(r => r.json()),
+      fetch(API + '/api/initiatives').then(r => r.json())
+    ]);
+    allInitiatives = inits;
+    document.getElementById('kpi-total').textContent = stats.total_active ?? 0;
+    document.getElementById('kpi-pending').textContent = stats.pending_validations ?? 0;
+    document.getElementById('kpi-risk').textContent = ((stats.by_risk?.high || 0) + (stats.by_risk?.critical || 0));
+    document.getElementById('kpi-approved').textContent = stats.approved_this_month ?? 0;
+    populateFilterDropdowns();
+    document.getElementById('seed-banner').style.display = inits.length ? 'none' : 'block';
+    await enrichWithValidations();
+    renderDashGrid();
+    renderAuthorityAlerts(stats.authority_alerts || []);
+  } catch(e) {
+    console.error('Dashboard load error:', e);
+    document.getElementById('kpi-total').textContent = '—';
+  }
+}
+
+async function enrichWithValidations() {
+  const chunks = [];
+  for (let i = 0; i < allInitiatives.length; i += 8) chunks.push(allInitiatives.slice(i, i + 8));
+  for (const chunk of chunks) {
+    await Promise.all(chunk.map(async (init) => {
+      try {
+        const vals = await fetch(API + '/api/initiatives/' + init.id + '/validations').then(r => r.json());
+        init._validations = vals;
+        init._validations_total = vals.length;
+        init._validations_approved = vals.filter(v => v.status === 'approved').length;
+      } catch {
+        init._validations = [];
+        init._validations_total = 0;
+        init._validations_approved = 0;
+      }
+    }));
+  }
+}
+
+function populateFilterDropdowns() {
+  const teams = [...new Set(allInitiatives.map(i => i.team).filter(Boolean))].sort();
+  const areas = [...new Set(allInitiatives.map(i => i.product_area).filter(Boolean))].sort();
+  const dashTeam = document.getElementById('dash-team');
+  const dashArea = document.getElementById('dash-area');
+  const initTeam = document.getElementById('init-team-f');
+  dashTeam.innerHTML = '<option value="">Todos los equipos</option>' + teams.map(t => `<option value="${t}">${t}</option>`).join('');
+  dashArea.innerHTML = '<option value="">Todas las áreas</option>' + areas.map(a => `<option value="${a}">${a}</option>`).join('');
+  initTeam.innerHTML = '<option value="">Todos los equipos</option>' + teams.map(t => `<option value="${t}">${t}</option>`).join('');
+}
+
+function renderDashGrid() {
+  const search = document.getElementById('dash-search').value.toLowerCase();
+  const status = document.getElementById('dash-status').value;
+  const risk = document.getElementById('dash-risk').value;
+  const team = document.getElementById('dash-team').value;
+  const area = document.getElementById('dash-area').value;
+  let items = allInitiatives.filter(i =>
+    (!search || (i.title||'').toLowerCase().includes(search) || (i.owner_name||'').toLowerCase().includes(search) || (i.qc_id||'').toLowerCase().includes(search)) &&
+    (!status || i.status === status) &&
+    (!risk || i.risk_level === risk) &&
+    (!team || i.team === team) &&
+    (!area || i.product_area === area)
+  );
+  const grid = document.getElementById('dash-grid');
+  if (!items.length && allInitiatives.length) {
+    grid.innerHTML = '<div class="empty">No hay iniciativas que coincidan con los filtros.</div>';
+    return;
+  }
+  if (!items.length) { grid.innerHTML = ''; return; }
+  grid.innerHTML = items.map(i => {
+    const approved = i._validations_approved || 0;
+    const total = i._validations_total || 0;
+    const pct = total ? Math.round(approved / total * 100) : 0;
+    const days = i.created_at ? Math.floor((Date.now() - new Date(i.created_at)) / 86400000) : 0;
+    const riskBorder = i.risk_level === 'critical' ? ' risk-border-critical' : i.risk_level === 'high' ? ' risk-border-high' : '';
+    return `<div class="init-card${riskBorder}" onclick="openDetail('${i.id}')">
+      <div class="card-header">
+        <span class="qc-id">${esc(i.qc_id || 'GL-???')}</span>
+        <span class="risk-badge risk-${i.risk_level || 'low'}">${i.risk_level || 'low'}</span>
+      </div>
+      <div class="title">${esc(i.title)}</div>
+      <div class="meta">${esc(i.owner_name || '—')} · ${esc(i.team || '—')}</div>
+      ${total ? `<div class="prog-wrap"><div class="prog-fill" style="width:${pct}%"></div></div>
+      <div class="prog-label">${approved}/${total} equipos aprobaron</div>` : '<div class="prog-label" style="color:#555">Sin validaciones asignadas</div>'}
+      <div class="card-footer">
+        <span class="status-badge status-${i.status}">${statusLabel(i.status)}</span>
+        <span class="days-badge">${days}d</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderAuthorityAlerts(alerts) {
+  const el = document.getElementById('authority-alerts');
+  if (!alerts.length) {
+    el.innerHTML = '<div style="color:#555;font-size:13px;padding:12px 0">No hay alertas de autoridad activas.</div>';
+    return;
+  }
+  const cards = alerts.flatMap(a => {
+    const flags = a.authority_flags || [];
+    return flags.map(f => {
+      const isCritical = (f.authority_level || '').toLowerCase().includes('board') || (a.risk_level === 'critical');
+      return `<div class="alert-card ${isCritical ? '' : 'warn'}">
+        <div class="alert-badge">⚠ ${esc(f.authority_level || 'Alta Autoridad')}</div>
+        <div class="alert-title">${esc(a.qc_id)} — ${esc(a.title)}</div>
+        <div class="alert-desc">${esc(f.description || '')}</div>
+      </div>`;
+    });
+  });
+  el.innerHTML = `<div class="alert-grid">${cards.join('')}</div>`;
+}
+
+function renderInitTable() {
+  const search = document.getElementById('init-search').value.toLowerCase();
+  const status = document.getElementById('init-status-f').value;
+  const risk = document.getElementById('init-risk-f').value;
+  const team = document.getElementById('init-team-f').value;
+  let items = allInitiatives.filter(i =>
+    (!search || (i.title||'').toLowerCase().includes(search) || (i.qc_id||'').toLowerCase().includes(search) || (i.owner_name||'').toLowerCase().includes(search)) &&
+    (!status || i.status === status) &&
+    (!risk || i.risk_level === risk) &&
+    (!team || i.team === team)
+  );
+  const tbody = document.getElementById('init-tbody');
+  if (!items.length) {
+    tbody.innerHTML = '<tr><td colspan="10" class="empty">No hay iniciativas que coincidan.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = items.map(i => {
+    const approved = i._validations_approved || 0;
+    const total = i._validations_total || 0;
+    return `<tr onclick="openDetail('${i.id}')">
+      <td><b style="color:#f5a623">${esc(i.qc_id || '—')}</b></td>
+      <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(i.title)}</td>
+      <td>${esc(i.owner_name || '—')}</td>
+      <td>${esc(i.team || '—')}</td>
+      <td>${esc(i.product_area || '—')}</td>
+      <td><span class="risk-badge risk-${i.risk_level || 'low'}">${i.risk_level || 'low'}</span></td>
+      <td><span class="status-badge status-${i.status}">${statusLabel(i.status)}</span></td>
+      <td>${approved}/${total}</td>
+      <td style="color:#555">${(i.created_at || '').slice(0,10) || '—'}</td>
+      <td onclick="event.stopPropagation()">
+        <div class="tbl-actions">
+          <button class="btn-xs btn-view" onclick="openDetail('${i.id}')">Ver</button>
+          <button class="btn-xs btn-archive" onclick="archiveInit('${i.id}', event)">Archivar</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function archiveInit(id, event) {
+  event.stopPropagation();
+  if (!confirm('¿Archivar esta iniciativa?')) return;
+  await fetch(API + '/api/initiatives/' + id, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: 'archived' })
+  });
+  await loadDashboard();
+  renderInitTable();
+}
+
+async function openDetail(id) {
+  const panel = document.getElementById('detail-panel');
+  const content = document.getElementById('detail-content');
+  content.innerHTML = '<div class="loading">Cargando...</div>';
+  panel.classList.add('open');
+  document.getElementById('overlay-bg').classList.add('open');
+  try {
+    const [init, vals, meetings, memEntries] = await Promise.all([
+      fetch(API + '/api/initiatives/' + id).then(r => r.json()),
+      fetch(API + '/api/initiatives/' + id + '/validations').then(r => r.json()),
+      fetch(API + '/api/initiatives/' + id + '/meetings').then(r => r.json()),
+      fetch(API + '/api/memory?initiative_id=' + id).then(r => r.json())
+    ]);
+    const d = init.diagnosis || {};
+    const flags = d.authority_flags || [];
+    const valApproved = vals.filter(v => v.status === 'approved').length;
+    const days = init.created_at ? Math.floor((Date.now() - new Date(init.created_at)) / 86400000) : 0;
+    content.innerHTML = `
+      <div style="margin-bottom:20px">
+        <div style="font-size:11px;color:#555;margin-bottom:4px;letter-spacing:.3px">${esc(init.qc_id || '')}</div>
+        <h2 style="font-size:17px;margin-bottom:10px;line-height:1.3">${esc(init.title)}</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <span class="risk-badge risk-${init.risk_level}">${init.risk_level || 'low'}</span>
+          <span class="status-badge status-${init.status}">${statusLabel(init.status)}</span>
+          <span style="font-size:11px;color:#555">${days} días</span>
+          <span style="font-size:11px;color:#555">· ${valApproved}/${vals.length} validaciones ✓</span>
+        </div>
+      </div>
+      <div class="panel-section">
+        <div class="panel-section-title">Información general</div>
+        ${dl('Descripción', init.description || '—')}
+        ${dl('Owner', (init.owner_name || '—') + (init.owner_email ? ' (' + init.owner_email + ')' : ''))}
+        ${dl('Equipo', init.team || '—')}
+        ${dl('Área de producto', init.product_area || '—')}
+        ${dl('Impacto financiero', init.financial_impact || '—')}
+        ${dl('Partners externos', init.has_partners ? 'Sí' : 'No')}
+        ${dl('Afecta checkout', init.affects_checkout ? 'Sí' : 'No')}
+        ${init.accounting_treatment ? dl('Tratamiento contable', init.accounting_treatment) : ''}
+        ${dl('CAPEX/OPEX', init.capex_or_opex || '—')}
+        ${dl('Riesgo de seguridad', init.has_security_risk ? 'Sí' : 'No')}
+        ${dl('Nueva línea de negocio', init.new_business_line ? 'Sí' : 'No')}
+      </div>
+      ${flags.length ? `<div class="panel-section">
+        <div class="panel-section-title">⚠ Flags de autoridad</div>
+        ${flags.map(f => `<div class="flag-block"><div class="flag-level">${esc(f.authority_level||'')}</div><div class="flag-desc">${esc(f.description||'')}</div></div>`).join('')}
+      </div>` : ''}
+      <div class="panel-section">
+        <div class="panel-section-title">Validaciones (${vals.length})</div>
+        ${vals.length ? `<table class="panel-validations-table">
+          <thead><tr><th>Equipo</th><th>Validador</th><th>Estado</th><th>Comentario</th><th>Fecha</th></tr></thead>
+          <tbody>${vals.map(v => `<tr>
+            <td>${esc(v.team_name)}</td>
+            <td style="color:#888">${esc(v.validator_name || '—')}</td>
+            <td><span class="status-badge status-${v.status}">${statusLabel(v.status)}</span></td>
+            <td style="color:#888;max-width:120px">${esc(v.comment || '')}</td>
+            <td style="color:#555">${(v.updated_at || v.created_at || '').slice(0,10)}</td>
+          </tr>`).join('')}</tbody>
+        </table>` : '<div style="color:#555;font-size:12px">Sin validaciones asignadas.</div>'}
+      </div>
+    `;
+  } catch(e) {
+    content.innerHTML = `<div style="color:#ff6464;padding:20px">Error al cargar el detalle: ${e.message}</div>`;
+  }
+}
+
+function closeDetail() {
+  document.getElementById('detail-panel').classList.remove('open');
+  document.getElementById('overlay-bg').classList.remove('open');
+}
+
+function closeAllPanels() {
+  closeDetail();
+  closeValDetail();
+}
+
+async function loadMyValidations() {
+  const team = document.getElementById('val-team-input').value.trim();
+  if (!team) { alert('Ingresá tu equipo primero.'); return; }
+  currentValTeam = team;
+  const listEl = document.getElementById('my-val-list');
+  listEl.innerHTML = `<div class="loading">Cargando validaciones pendientes para "<b>${esc(team)}</b>"...</div>`;
+  try {
+    let inits = allInitiatives;
+    if (!inits.length) {
+      inits = await fetch(API + '/api/initiatives').then(r => r.json());
+      allInitiatives = inits;
+    }
+    const pendingRows = [];
+    await Promise.all(inits.map(async (init) => {
+      try {
+        const vals = await fetch(API + '/api/initiatives/' + init.id + '/validations').then(r => r.json());
+        vals.filter(v => v.team_name.toLowerCase() === team.toLowerCase() && v.status === 'pending').forEach(v => {
+          pendingRows.push({ ...v, _init: init });
+        });
+      } catch {}
+    }));
+    if (!pendingRows.length) {
+      listEl.innerHTML = `<div class="empty">✅ No hay validaciones pendientes para el equipo <b>${esc(team)}</b>.</div>`;
+      return;
+    }
+    const riskOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+    pendingRows.sort((a, b) => (riskOrder[a._init.risk_level] ?? 9) - (riskOrder[b._init.risk_level] ?? 9));
+    listEl.innerHTML = `
+      <div style="margin-bottom:12px;font-size:13px;color:#888">${pendingRows.length} validación(es) pendiente(s) para el equipo <b style="color:#f5a623">${esc(team)}</b></div>
+      ${pendingRows.map(v => {
+        const riskCardClass = v._init.risk_level === 'critical' ? ' risk-critical-card' : v._init.risk_level === 'high' ? ' risk-high-card' : '';
+        const days = v.created_at ? Math.floor((Date.now() - new Date(v.created_at)) / 86400000) : 0;
+        return `<div class="pending-card${riskCardClass}" onclick="openValDetail('${v.id}','${v.initiative_id}','${esc(v._init.owner_name||'')}','${esc(v._init.owner_email||'')}')">
+          <div class="pc-header">
+            <div style="flex:1;min-width:0">
+              <span class="qc-id" style="font-size:11px;color:#555">${esc(v._init.qc_id || '')}</span>
+              <div class="pc-title">${esc(v._init.title)}</div>
+            </div>
+            <span class="risk-badge risk-${v._init.risk_level || 'low'}">${v._init.risk_level || 'low'}</span>
+          </div>
+          <div class="pc-meta">Área: ${esc(v._init.product_area || '—')} · Owner: ${esc(v._init.owner_name || '—')} · Hace ${days} días</div>
+          <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+            <span class="status-badge status-pending">Pendiente</span>
+            <span style="font-size:12px;color:#555">→ Click para revisar</span>
+          </div>
+        </div>`;
+      }).join('')}
+    `;
+  } catch(e) {
+    listEl.innerHTML = `<div style="color:#ff6464">Error: ${e.message}</div>`;
+  }
+}
+
+async function openValDetail(valId, initId, ownerName, ownerEmail) {
+  currentValId = valId;
+  currentValInitId = initId;
+  currentValOwnerName = ownerName;
+  currentValOwnerEmail = ownerEmail;
+  pendingAction = null;
+  const panel = document.getElementById('val-detail-panel');
+  const content = document.getElementById('val-detail-content');
+  content.innerHTML = '<div class="loading">Cargando...</div>';
+  panel.classList.add('open');
+  document.getElementById('overlay-bg').classList.add('open');
+  try {
+    const [init, vals] = await Promise.all([
+      fetch(API + '/api/initiatives/' + initId).then(r => r.json()),
+      fetch(API + '/api/initiatives/' + initId + '/validations').then(r => r.json())
+    ]);
+    const d = init.diagnosis || {};
+    content.innerHTML = `
+      <div style="margin-bottom:20px">
+        <div style="font-size:11px;color:#555;margin-bottom:4px">${esc(init.qc_id || '')}</div>
+        <h2 style="font-size:16px;margin-bottom:10px;line-height:1.3">${esc(init.title)}</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <span class="risk-badge risk-${init.risk_level}">${init.risk_level || 'low'}</span>
+          <span class="status-badge status-${init.status}">${statusLabel(init.status)}</span>
+        </div>
+      </div>
+      <div class="panel-section">
+        <div class="panel-section-title">Descripción de la iniciativa</div>
+        <div style="font-size:13px;color:#ccc;line-height:1.6">${esc(init.description || 'Sin descripción.')}</div>
+      </div>
+      ${dl('Owner', (init.owner_name || '—') + (init.owner_email ? ' · ' + init.owner_email : ''))}
+      ${dl('Equipo propietario', init.team || '—')}
+      ${dl('Área de producto', init.product_area || '—')}
+      ${dl('Impacto financiero', init.financial_impact || '—')}
+      ${dl('Afecta checkout', init.affects_checkout ? 'Sí' : 'No')}
+      <div class="panel-section" id="val-action-section">
+        <div class="panel-section-title">Tu decisión</div>
+        <div class="val-action-row">
+          <button class="btn-approve" id="btn-approve" onclick="setValAction('approve', this)">✅ APROBAR</button>
+          <button class="btn-reject" id="btn-reject" onclick="setValAction('reject', this)">❌ NO APROBAR</button>
+          <button class="btn-meet-action" id="btn-meet" onclick="setValAction('clarification', this)">❓ NECESITO REUNIÓN</button>
+        </div>
+        <div id="val-comment-wrap" style="display:none">
+          <textarea class="comment-area" id="val-comment" placeholder="Comentario..."></textarea>
+          <div class="val-submit-row">
+            <button class="btn-secondary" onclick="cancelValAction()">Cancelar</button>
+            <button class="btn-primary" id="val-confirm-btn" onclick="submitValAction()">Confirmar</button>
+          </div>
+        </div>
+        <div id="val-meet-wrap" style="display:none">
+          <div style="margin-top:12px;background:#0f1117;border-radius:8px;padding:14px">
+            <div style="font-size:12px;color:#888;margin-bottom:8px">Describí qué necesitás aclarar:</div>
+            <textarea class="comment-area" id="val-meet-note" placeholder="¿Qué dudas tenés sobre esta iniciativa?"></textarea>
+            <div class="val-submit-row">
+              <button class="btn-secondary" onclick="cancelValAction()">Cancelar</button>
+              <button class="btn-primary" onclick="submitMeetRequest()">📩 Registrar solicitud</button>
+            </div>
+          </div>
+          <div class="info-notice" style="margin-top:12px">ℹ️ Tu solicitud quedará registrada. El equipo coordinará la reunión manualmente.</div>
+        </div>
+        <div id="val-action-result" style="display:none"></div>
+      </div>
+    `;
+  } catch(e) {
+    content.innerHTML = `<div style="color:#ff6464">Error: ${e.message}</div>`;
+  }
+}
+
+function setValAction(action, btn) {
+  pendingAction = action;
+  ['btn-approve','btn-reject','btn-meet'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('active'); });
+  btn.classList.add('active');
+  document.getElementById('val-comment-wrap').style.display = 'none';
+  document.getElementById('val-meet-wrap').style.display = 'none';
+  if (action === 'clarification') {
+    document.getElementById('val-meet-wrap').style.display = 'block';
+    setTimeout(() => document.getElementById('val-meet-note').focus(), 100);
+  } else {
+    document.getElementById('val-comment-wrap').style.display = 'block';
+    const commentEl = document.getElementById('val-comment');
+    commentEl.placeholder = action === 'approve' ? 'Comentario de aprobación (requerido)...' : 'Motivo del rechazo (requerido)...';
+    commentEl.value = '';
+    setTimeout(() => commentEl.focus(), 100);
+  }
+}
+
+function cancelValAction() {
+  pendingAction = null;
+  ['btn-approve','btn-reject','btn-meet'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('active'); });
+  document.getElementById('val-comment-wrap').style.display = 'none';
+  document.getElementById('val-meet-wrap').style.display = 'none';
+  document.getElementById('val-action-result').style.display = 'none';
+}
+
+async function submitValAction() {
+  const comment = document.getElementById('val-comment').value.trim();
+  if (!comment) { alert('El comentario es requerido.'); return; }
+  if (!pendingAction) return;
+  const status = pendingAction === 'approve' ? 'approved' : 'rejected';
+  const validatorName = document.getElementById('username-input').value || currentValTeam;
+  const btn = document.getElementById('val-confirm-btn');
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+  try {
+    await fetch(API + '/api/validations/' + currentValId, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status, comment, validator_name: validatorName })
+    });
+    const resultEl = document.getElementById('val-action-result');
+    resultEl.className = 'success-notice';
+    resultEl.innerHTML = `✅ Validación ${status === 'approved' ? 'aprobada' : 'rechazada'} correctamente.`;
+    resultEl.style.display = 'block';
+    document.getElementById('val-comment-wrap').style.display = 'none';
+    setTimeout(() => { closeValDetail(); loadMyValidations(); loadDashboard(); }, 1500);
+  } catch(e) {
+    alert('Error al enviar: ' + e.message);
+    btn.disabled = false;
+    btn.textContent = 'Confirmar';
+  }
+}
+
+async function submitMeetRequest() {
+  const note = document.getElementById('val-meet-note').value.trim();
+  if (!note) { alert('Describí qué necesitás aclarar antes de enviar.'); return; }
+  const validatorName = document.getElementById('username-input').value || currentValTeam;
+  try {
+    await fetch(API + '/api/validations/' + currentValId, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'needs_clarification', comment: note, validator_name: validatorName })
+    });
+    await fetch(API + '/api/meetings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ initiative_id: currentValInitId, validation_id: currentValId, requester_name: validatorName, requester_email: '', owner_name: currentValOwnerName, owner_email: currentValOwnerEmail, team_name: currentValTeam, reason: note, scheduled_at: null })
+    });
+    document.getElementById('val-meet-wrap').style.display = 'none';
+    const resultEl = document.getElementById('val-action-result');
+    resultEl.className = 'info-notice';
+    resultEl.innerHTML = '📩 Solicitud registrada correctamente.';
+    resultEl.style.display = 'block';
+    setTimeout(() => { closeValDetail(); loadMyValidations(); }, 2500);
+  } catch(e) {
+    alert('Error al registrar: ' + e.message);
+  }
+}
+
+function closeValDetail() {
+  document.getElementById('val-detail-panel').classList.remove('open');
+  document.getElementById('overlay-bg').classList.remove('open');
+  pendingAction = null;
+}
+
+function openMeetModal() {
+  document.getElementById('m-rname').value = document.getElementById('username-input').value || currentValTeam;
+  document.getElementById('m-remail').value = '';
+  document.getElementById('m-reason').value = '';
+  const r = document.getElementById('m-result');
+  r.style.display = 'none';
+  r.className = 'm-result';
+  document.getElementById('m-submit-btn').disabled = false;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+function handleModalOverlayClick(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
+
+async function submitMeetingRequest() {
+  const rname = document.getElementById('m-rname').value.trim();
+  const remail = document.getElementById('m-remail').value.trim();
+  const reason = document.getElementById('m-reason').value.trim();
+  if (!rname || !reason) { alert('Completá al menos tu nombre y el motivo.'); return; }
+  const btn = document.getElementById('m-submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Registrando...';
+  const r = document.getElementById('m-result');
+  try {
+    if (currentValId) {
+      await fetch(API + '/api/validations/' + currentValId, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'needs_clarification', comment: reason, validator_name: rname }) });
+    }
+    await fetch(API + '/api/meetings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initiative_id: currentValInitId, validation_id: currentValId, requester_name: rname, requester_email: remail, owner_name: currentValOwnerName, owner_email: currentValOwnerEmail, team_name: currentValTeam, reason }) });
+    r.innerHTML = '✅ Solicitud registrada. El equipo coordinará la reunión manualmente.';
+    r.className = 'm-result info';
+    r.style.display = 'block';
+    btn.textContent = '✅ Registrado';
+    setTimeout(() => closeModal(), 3000);
+  } catch(e) {
+    r.textContent = 'Error al registrar: ' + e.message;
+    r.className = 'm-result err';
+    r.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = '📩 Registrar solicitud';
+  }
+}
+
+async function loadMemory() {
+  try {
+    const [patterns, entries] = await Promise.all([
+      fetch(API + '/api/memory/patterns').then(r => r.json()),
+      fetch(API + '/api/memory').then(r => r.json())
+    ]);
+    allMemoryEntries = entries;
+    const teamsEl = document.getElementById('mem-teams');
+    if ((patterns.top_teams_by_frequency || []).length) {
+      teamsEl.innerHTML = patterns.top_teams_by_frequency.map(t => `<div class="mem-row"><span>${esc(t.team_name)}</span><span class="mem-count">${t.count}</span></div>`).join('');
+    } else {
+      const teamCounts = {};
+      allInitiatives.forEach(i => { (i._validations || []).forEach(v => { teamCounts[v.team_name] = (teamCounts[v.team_name] || 0) + 1; }); });
+      const sorted = Object.entries(teamCounts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+      teamsEl.innerHTML = sorted.length ? sorted.map(([t, c]) => `<div class="mem-row"><span>${esc(t)}</span><span class="mem-count">${c}</span></div>`).join('') : '<div class="empty" style="padding:16px 0">Sin datos aún.</div>';
+    }
+    const risksEl = document.getElementById('mem-risks');
+    if ((patterns.risks_by_product_area || []).length) {
+      risksEl.innerHTML = patterns.risks_by_product_area.map(r => `<div class="mem-row"><span>${esc(r.product_area)}</span><span class="risk-badge risk-${r.risk_level}">${r.risk_level} (${r.count})</span></div>`).join('');
+    } else {
+      const areaCounts = {};
+      allInitiatives.forEach(i => { const k = i.product_area || '—'; if (!areaCounts[k]) areaCounts[k] = { high: 0, medium: 0, low: 0, critical: 0, total: 0 }; areaCounts[k][i.risk_level] = (areaCounts[k][i.risk_level] || 0) + 1; areaCounts[k].total++; });
+      const sorted = Object.entries(areaCounts).sort((a, b) => b[1].total - a[1].total).slice(0, 8);
+      const riskOrd = { critical: 4, high: 3, medium: 2, low: 1 };
+      risksEl.innerHTML = sorted.length ? sorted.map(([area, counts]) => { const topRisk = Object.keys(riskOrd).sort((a, b) => (counts[b]||0)*riskOrd[b] - (counts[a]||0)*riskOrd[a])[0]; return `<div class="mem-row"><span>${esc(area)}</span><span class="risk-badge risk-${topRisk}">${topRisk}</span></div>`; }).join('') : '<div class="empty" style="padding:16px 0">Sin datos aún.</div>';
+    }
+    renderMemTimeline(entries);
+  } catch(e) {
+    document.getElementById('mem-teams').innerHTML = '<div style="color:#ff6464;font-size:12px">Error al cargar.</div>';
+  }
+}
+
+function renderMemTimeline(entries) {
+  const el = document.getElementById('mem-timeline');
+  if (!entries.length) { el.innerHTML = '<div class="empty">Sin entradas de memoria aún.</div>'; return; }
+  el.innerHTML = entries.map(e => {
+    let preview = '';
+    try { const obj = JSON.parse(e.content_json); preview = obj.summary || obj.transcript || obj.description || obj.content || JSON.stringify(obj).slice(0, 200); } catch { preview = (e.content_json || '').slice(0, 200); }
+    return `<div class="mem-tl-item"><div class="mti-meta"><span class="mti-type">${esc(e.entry_type)}</span><span>${(e.created_at||'').slice(0,10)}</span>${e.initiative_id ? `<span style="color:#555">#${esc(e.initiative_id.slice(0,8))}</span>` : ''}${(e.tags||'').split(',').filter(Boolean).map(t=>`<span class="tag-chip">${esc(t.trim())}</span>`).join('')}</div><div class="mti-content">${esc(preview)}</div></div>`;
+  }).join('');
+}
+
+function filterMemTimeline() {
+  const q = document.getElementById('mem-search').value.toLowerCase().trim();
+  if (!q) { renderMemTimeline(allMemoryEntries); return; }
+  const filtered = allMemoryEntries.filter(e => (e.tags||'').toLowerCase().includes(q) || (e.initiative_id||'').toLowerCase().includes(q) || (e.entry_type||'').toLowerCase().includes(q) || (e.content_json||'').toLowerCase().includes(q));
+  renderMemTimeline(filtered);
+}
+
+async function seedDemoData() {
+  const btn = document.getElementById('seed-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Cargando...';
+  const demos = [
+    { title: 'Nuevo gateway de pagos con Stripe Connect', description: 'Migración del procesamiento de pagos a Stripe Connect para reducir latencia y habilitar split payments con partners estratégicos en LATAM.', owner_name: 'María López', owner_email: 'mlopez@empresa.com', team: 'Payments', product_area: 'Checkout', has_partners: true, financial_impact: 'high', affects_checkout: true, accounting_treatment: 'IFRS 15 — Revenue Recognition', has_security_risk: true, new_business_line: false, capex_or_opex: 'opex', risk_level: 'critical' },
+    { title: 'Optimización del flujo de onboarding', description: 'Rediseño del proceso de registro para reducir el tiempo de activación de 48h a 2h mediante automatización y mejoras en UX.', owner_name: 'Carlos Gómez', owner_email: 'cgomez@empresa.com', team: 'Product', product_area: 'Onboarding', has_partners: false, financial_impact: 'medium', affects_checkout: false, has_security_risk: false, new_business_line: false, capex_or_opex: 'opex', risk_level: 'medium' },
+    { title: 'Integración con partner logístico XYZ', description: 'Nuevo contrato de integración con XYZ Logistics para ofrecer envíos same-day en LATAM. Requiere acuerdo comercial y validación legal.', owner_name: 'Ana Torres', owner_email: 'atorres@empresa.com', team: 'Operations', product_area: 'Backoffice', has_partners: true, financial_impact: 'high', affects_checkout: false, accounting_treatment: 'CAPEX — activo intangible', has_security_risk: false, new_business_line: false, capex_or_opex: 'capex', risk_level: 'high' },
+    { title: 'Autenticación 2FA obligatoria para admins', description: 'Implementación de doble factor de autenticación para todos los usuarios con permisos de administración o acceso a datos sensibles.', owner_name: 'Rodrigo Mena', owner_email: 'rmena@empresa.com', team: 'Security', product_area: 'Onboarding', has_partners: false, financial_impact: 'minimal', affects_checkout: false, has_security_risk: true, new_business_line: false, capex_or_opex: 'opex', risk_level: 'medium' },
+    { title: 'Módulo de facturación electrónica AFIP', description: 'Integración con AFIP para emisión automática de facturas electrónicas en Argentina. Impacta procesos contables y requiere validación fiscal.', owner_name: 'Laura Paz', owner_email: 'lpaz@empresa.com', team: 'Finance', product_area: 'Facturación', has_partners: false, financial_impact: 'high', affects_checkout: true, accounting_treatment: 'Compliance fiscal obligatorio', has_security_risk: false, new_business_line: false, capex_or_opex: 'capex', risk_level: 'high' },
+    { title: 'Dashboard analítico para equipo comercial', description: 'Tablero de métricas de ventas con integración a BigQuery y visualizaciones en tiempo real para el equipo comercial y management.', owner_name: 'Diego Cruz', owner_email: 'dcruz@empresa.com', team: 'Data', product_area: 'Backoffice', has_partners: false, financial_impact: 'minimal', affects_checkout: false, has_security_risk: false, new_business_line: false, capex_or_opex: 'opex', risk_level: 'low' }
+  ];
+  const validationsByInit = [['Legal','Tax','Security','Finance','Compliance'],['Legal','Product'],['Legal','Finance','Tax','Compliance'],['Security','Legal'],['Legal','Tax','Finance','Compliance','Security'],['Data','Legal']];
+  const approveFirst = [[0,1],[0],[0,1],[],[0],[0]];
+  try {
+    for (let i = 0; i < demos.length; i++) {
+      const resp = await fetch(API + '/api/initiatives', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(demos[i]) });
+      const created = await resp.json();
+      const initId = created.id;
+      const valResp = await fetch(API + '/api/initiatives/' + initId + '/validations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ team_names: validationsByInit[i] }) });
+      const valData = await valResp.json();
+      const toApprove = approveFirst[i] || [];
+      for (const idx of toApprove) {
+        if (valData.created && valData.created[idx]) {
+          await fetch(API + '/api/validations/' + valData.created[idx].id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'approved', comment: 'Pre-validado en revisión inicial', validator_name: 'Auto-demo' }) });
+        }
+      }
+    }
+    btn.textContent = '✅ Datos cargados';
+    await loadDashboard();
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = '🌱 Cargar datos demo';
+    alert('Error al cargar datos demo: ' + e.message);
+  }
+}
+
+function esc(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function dl(label, value) {
+  return `<div class="dl-row"><dt>${esc(label)}</dt><dd>${esc(String(value))}</dd></div>`;
+}
+
+function statusLabel(s) {
+  const m = { under_review: 'En revisión', approved: 'Aprobada', blocked: 'Bloqueada', draft: 'Borrador', archived: 'Archivada', pending: 'Pendiente', rejected: 'Rechazada', needs_clarification: 'Necesita reunión' };
+  return m[s] || (s || '').replace(/_/g, ' ');
+}
+
+function formatDate(iso) {
+  if (!iso) return '—';
+  try { return new Date(iso).toLocaleString('es-AR', { dateStyle: 'medium', timeStyle: 'short' }); }
+  catch { return iso; }
+}
+
+function safeJsonPreview(jsonStr) {
+  if (!jsonStr) return '';
+  try { const obj = JSON.parse(jsonStr); return obj.summary || obj.description || obj.transcript || obj.content || JSON.stringify(obj).slice(0, 200); }
+  catch { return String(jsonStr).slice(0, 200); }
+}
+
+setInterval(async () => {
+  try {
+    const stats = await fetch(API + '/api/initiatives/stats').then(r => r.json());
+    const pendingEl = document.getElementById('kpi-pending');
+    if (pendingEl) pendingEl.textContent = stats.pending_validations ?? '—';
+  } catch {}
+}, 30000);
+
+loadDashboard();
+</script>
 </body>
 </html>
