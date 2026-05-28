@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+<title>Green Light — Portal de Validadores</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f1117;color:#e8e8e8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;min-height:100vh;font-size:14px}
+#topbar{background:#1a1d27;border-bottom:1px solid #2a2d3a;padding:0 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;height:56px;gap:16px}
+.logo{font-size:19px;font-weight:700;color:#00d4a1;white-space:nowrap;flex-shrink:0}
+.logo span{color:#e8e8e8;font-weight:400}
+.topbar-right{display:flex;gap:10px;align-items:center;flex-shrink:0}
+#validator-info{font-size:13px;color:#aaa}
+#validator-info strong{color:#00d4a1}
+.btn-logout{background:transparent;border:1px solid #2a2d3a;color:#888;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;transition:all .15s}
+.btn-logout:hover{border-color:#ff6464;color:#ff6464}
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh}
+.login-card{background:#1a1d27;border:1px solid #2a2d3a;border-radius:16px;padding:48px 40px;width:100%;max-width:400px;text-align:center}
+.login-icon{font-size:48px;margin-bottom:16px}
+.login-title{font-size:22px;font-weight:700;color:#e8e8e8;margin-bottom:8px}
+.login-subtitle{font-size:13px;color:#666;margin-bottom:32px}
+.login-input{width:100%;background:#0f1117;border:1px solid #2a2d3a;color:#e8e8e8;padding:12px 16px;border-radius:8px;font-size:14px;outline:none;transition:border-color .15s;margin-bottom:16px}
+.login-input:focus{border-color:#00d4a1}
+.login-input::placeholder{color:#555}
+.btn-login{width:100%;background:#00d4a1;color:#0f1117;border:none;padding:12px;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;transition:opacity .15s;margin-bottom:16px}
+.btn-login:hover{opacity:.85}
+.btn-login:disabled{opacity:.5;cursor:not-allowed}
+.login-error{background:#ff646420;border:1px solid #ff6464;border-radius:8px;padding:12px;font-size:13px;color:#ff6464;margin-top:8px;display:none}
+.login-error.show{display:block}
+#portal-screen{display:none}
+#main{padding:24px;max-width:1200px;margin:0 auto}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.section-title{font-size:18px;font-weight:700;color:#e8e8e8;display:flex;align-items:center;gap:8px}
+.badge{background:#00d4a120;color:#00d4a1;border:1px solid #00d4a140;border-radius:12px;padding:2px 10px;font-size:11px;font-weight:600}
+.init-list{display:flex;flex-direction:column;gap:12px}
+.init-card{background:#1a1d27;border:1px solid #2a2d3a;border-radius:10px;overflow:hidden;transition:border-color .18s}
+.init-card:hover{border-color:#3a3d4a}
+.init-card.expanded{border-color:#00d4a140}
+.init-header{padding:16px 20px;cursor:pointer;display:flex;align-items:flex-start;gap:16px;justify-content:space-between}
+.init-header-left{flex:1;min-width:0}
+.init-title{font-size:15px;font-weight:600;color:#e8e8e8;margin-bottom:6px}
+.init-meta{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.meta-tag{font-size:11px;color:#666;display:flex;align-items:center;gap:4px}
+.meta-tag strong{color:#aaa}
+.risk-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.4px}
+.risk-low{background:#0ca78920;color:#0ca789;border:1px solid #0ca78940}
+.risk-medium{background:#f5a62320;color:#f5a623;border:1px solid #f5a62340}
+.risk-high{background:#ff646420;color:#ff6464;border:1px solid #ff646440}
+.risk-critical{background:#ff000020;color:#ff4444;border:1px solid #ff444440}
+.init-expand-icon{font-size:18px;color:#555;transition:transform .2s;flex-shrink:0;margin-top:2px}
+.init-card.expanded .init-expand-icon{transform:rotate(180deg);color:#00d4a1}
+.init-body{display:none;border-top:1px solid #2a2d3a;padding:20px}
+.init-card.expanded .init-body{display:block}
+.body-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
+@media(max-width:600px){.body-grid{grid-template-columns:1fr}}
+.body-section{background:#0f1117;border-radius:8px;padding:14px}
+.body-section-title{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;font-weight:600}
+.body-text{font-size:13px;color:#ccc;line-height:1.6}
+.status-pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:4px 10px;border-radius:6px}
+.status-pending{background:#f5a62320;color:#f5a623}
+.status-approved{background:#0ca78920;color:#0ca789}
+.status-rejected{background:#ff646420;color:#ff6464}
+.status-needs_info{background:#5b83e020;color:#5b83e0}
+.comments-section{margin-bottom:20px}
+.comments-title{font-size:13px;font-weight:600;color:#aaa;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.comment-item{background:#0f1117;border-radius:8px;padding:12px;margin-bottom:8px}
+.comment-meta{font-size:11px;color:#555;margin-bottom:6px}
+.comment-text{font-size:13px;color:#ccc;line-height:1.5}
+.comment-form{background:#0f1117;border-radius:8px;padding:14px}
+.comment-textarea{width:100%;background:#1a1d27;border:1px solid #2a2d3a;color:#e8e8e8;padding:10px 12px;border-radius:6px;font-size:13px;outline:none;resize:vertical;min-height:80px;font-family:inherit;transition:border-color .15s}
+.comment-textarea:focus{border-color:#00d4a1}
+.comment-textarea::placeholder{color:#555}
+.meeting-section{margin-bottom:20px;background:#0f1117;border-radius:8px;padding:16px}
+.meeting-form{display:none;margin-top:14px}
+.meeting-form.show{display:block}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+@media(max-width:500px){.form-row{grid-template-columns:1fr}}
+.form-input{width:100%;background:#1a1d27;border:1px solid #2a2d3a;color:#e8e8e8;padding:9px 12px;border-radius:6px;font-size:13px;outline:none;transition:border-color .15s}
+.form-input:focus{border-color:#00d4a1}
+.form-input::placeholder{color:#555}
+.action-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding-top:16px;border-top:1px solid #2a2d3a20}
+.btn{padding:9px 18px;border-radius:7px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.btn-approve{background:#0ca789;color:#fff}
+.btn-approve:hover{background:#0ab87a}
+.btn-reject{background:#ff6464;color:#fff}
+.btn-reject:hover{background:#ff4a4a}
+.btn-info{background:#5b83e0;color:#fff}
+.btn-info:hover{background:#4a72cf}
+.btn-comment{background:#2a2d3a;color:#e8e8e8;border:1px solid #3a3d4a}
+.btn-comment:hover{background:#3a3d4a}
+.btn-meeting{background:transparent;border:1px solid #00d4a1;color:#00d4a1}
+.btn-meeting:hover{background:#00d4a120}
+.btn-sm{padding:6px 14px;font-size:12px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.empty-state{text-align:center;padding:60px 20px;color:#555}
+.empty-icon{font-size:48px;margin-bottom:16px}
+.empty-title{font-size:16px;font-weight:600;color:#666;margin-bottom:8px}
+.empty-sub{font-size:13px}
+#toast{position:fixed;bottom:24px;right:24px;background:#1a1d27;border:1px solid #2a2d3a;border-radius:10px;padding:14px 20px;font-size:13px;z-index:9999;transform:translateY(100px);opacity:0;transition:all .3s;max-width:300px}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.success{border-color:#00d4a1;color:#00d4a1}
+#toast.error{border-color:#ff6464;color:#ff6464}
+#toast.info{border-color:#5b83e0;color:#5b83e0}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid #2a2d3a;border-top-color:#00d4a1;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-state{text-align:center;padding:40px;color:#555}
+</style>
+</head>
+<body>
+<div id="topbar" style="display:none">
+  <div class="logo">🟢 Green <span>Light</span> <span style="color:#555;font-size:13px;font-weight:400">/ Validadores</span></div>
+  <div class="topbar-right">
+    <span id="validator-info"></span>
+    <button class="btn-logout" onclick="logout()">Cerrar sesión</button>
+  </div>
+</div>
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-icon">🔐</div>
+    <div class="login-title">Portal de Validadores</div>
+    <div class="login-subtitle">Ingresá tu email para acceder a tus iniciativas pendientes</div>
+    <input type="email" id="login-email" class="login-input" placeholder="tu@email.com" autocomplete="email" />
+    <button class="btn-login" id="btn-login" onclick="doLogin()">Ingresar</button>
+    <div class="login-error" id="login-error">Tu email no tiene acceso. Contactá al administrador.</div>
+  </div>
+</div>
+<div id="portal-screen">
+  <div id="main">
+    <div class="section-header">
+      <div class="section-title">📋 Iniciativas pendientes <span class="badge" id="count-badge">0</span></div>
+      <div style="font-size:12px;color:#555">Equipo: <strong id="team-label" style="color:#00d4a1"></strong></div>
+    </div>
+    <div id="initiatives-container"><div class="loading-state"><div class="spinner"></div><br><br>Cargando iniciativas...</div></div>
+  </div>
+</div>
+<div id="toast"></div>
+<script>
+const API='';
+let currentUser=null;
+function saveSession(u){currentUser=u;localStorage.setItem('gl_validator',JSON.stringify(u));}
+function loadSession(){try{const s=localStorage.getItem('gl_validator');if(s)return JSON.parse(s);}catch(e){}return null;}
+function logout(){localStorage.removeItem('gl_validator');currentUser=null;document.getElementById('portal-screen').style.display='none';document.getElementById('topbar').style.display='none';document.getElementById('login-screen').style.display='flex';document.getElementById('login-email').value='';document.getElementById('login-error').classList.remove('show');}
+async function doLogin(){const email=document.getElementById('login-email').value.trim();if(!email){showToast('Ingresá tu email','error');return;}const btn=document.getElementById('btn-login');btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Verificando...';document.getElementById('login-error').classList.remove('show');try{const res=await fetch('/api/auth/validator',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});const data=await res.json();if(data.authorized){saveSession({email,name:data.name,team:data.team});enterPortal(data);}else{document.getElementById('login-error').classList.add('show');}}catch(e){showToast('Error de conexión','error');}finally{btn.disabled=false;btn.textContent='Ingresar';}}
+function enterPortal(user){document.getElementById('login-screen').style.display='none';document.getElementById('topbar').style.display='flex';document.getElementById('portal-screen').style.display='block';document.getElementById('validator-info').innerHTML=`<strong>${user.name||user.email}</strong> <span style="color:#555">— ${user.team||'Sin equipo'}</span>`;document.getElementById('team-label').textContent=user.team||'Sin equipo asignado';loadInitiatives(user.email);}
+async function loadInitiatives(email){const container=document.getElementById('initiatives-container');container.innerHTML='<div class="loading-state"><div class="spinner"></div><br><br>Cargando...</div>';try{const res=await fetch(`/api/validators/initiatives?email=${encodeURIComponent(email)}`);const data=await res.json();renderInitiatives(data);}catch(e){container.innerHTML='<div class="loading-state">Error al cargar. Recargá la página.</div>';}}
+function riskBadge(l){const m={low:'Bajo',medium:'Medio',high:'Alto',critical:'Crítico'};const c={low:'risk-low',medium:'risk-medium',high:'risk-high',critical:'risk-critical'};return `<span class="risk-badge ${c[l]||'risk-low'}">${m[l]||l}</span>`;}
+function statusPill(s){const m={pending:'Pendiente',approved:'Aprobado',rejected:'Rechazado',needs_info:'Más info'};const c={pending:'status-pending',approved:'status-approved',rejected:'status-rejected',needs_info:'status-needs_info'};return `<span class="status-pill ${c[s]||'status-pending'}">${m[s]||s}</span>`;}
+function fmtDate(iso){if(!iso)return '—';return new Date(iso).toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'});}
+function renderInitiatives(initiatives){const container=document.getElementById('initiatives-container');document.getElementById('count-badge').textContent=initiatives.length;if(!initiatives.length){container.innerHTML='<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">Sin iniciativas pendientes</div><div class="empty-sub">No hay iniciativas asignadas a tu equipo por el momento.</div></div>';return;}container.innerHTML=`<div class="init-list">${initiatives.map(i=>renderCard(i)).join('')}</div>`;}
+function renderCard(init){const valStatus=init.my_validation?init.my_validation.status:'pending';const commentCount=(init.validator_comments||[]).length;return `<div class="init-card" id="card-${init.id}"><div class="init-header" onclick="toggleCard('${init.id}')"><div class="init-header-left"><div class="init-title">${escHtml(init.title)}</div><div class="init-meta"><span class="meta-tag">👤 <strong>${escHtml(init.owner_name||'—')}</strong></span><span class="meta-tag">📅 ${fmtDate(init.created_at)}</span>${riskBadge(init.risk_level||'low')}${statusPill(valStatus)}${commentCount?`<span class="meta-tag">💬 ${commentCount}</span>`:''}</div><div style="font-size:12px;color:#666;margin-top:6px;line-height:1.4">${escHtml((init.description||'').slice(0,120))}${(init.description||'').length>120?'…':''}</div></div><div class="init-expand-icon">▼</div></div><div class="init-body" id="body-${init.id}">${renderCardBody(init)}</div></div>`;}
+function renderCardBody(init){const val=init.my_validation||{};const comments=init.validator_comments||[];let diagText='—';try{if(init.diagnosis_json){const d=typeof init.diagnosis_json==='string'?JSON.parse(init.diagnosis_json):init.diagnosis_json;diagText=d.summary||d.diagnosis||JSON.stringify(d).slice(0,300);}}catch(e){diagText=init.diagnosis_json||'—';}return `<div class="body-grid"><div class="body-section"><div class="body-section-title">Descripción</div><div class="body-text">${escHtml(init.description||'Sin descripción')}</div></div><div class="body-section"><div class="body-section-title">Diagnóstico</div><div class="body-text">${escHtml(diagText)}</div></div></div><div class="body-section" style="margin-bottom:16px"><div class="body-section-title">Estado de validación</div><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">${statusPill(val.status||'pending')}${val.comment?`<span style="font-size:12px;color:#666">"${escHtml(val.comment)}"</span>`:''}</div></div><div class="comments-section"><div class="comments-title">💬 Comentarios <span style="background:#2a2d3a;border-radius:10px;padding:1px 8px;font-size:11px">${comments.length}</span></div>${comments.map(c=>`<div class="comment-item"><div class="comment-meta">${escHtml(c.validator_name||c.validator_email)} · ${fmtDate(c.created_at)}</div><div class="comment-text">${escHtml(c.comment)}</div></div>`).join('')}<div class="comment-form"><textarea class="comment-textarea" id="comment-${init.id}" placeholder="Escribí tu comentario..."></textarea><div style="margin-top:8px;text-align:right"><button class="btn btn-comment btn-sm" onclick="submitComment('${init.id}')">💬 Enviar</button></div></div></div><div class="meeting-section" id="meeting-section-${init.id}"><div style="display:flex;align-items:center;justify-content:space-between"><div class="body-section-title" style="margin:0">📅 Solicitar reunión</div><button class="btn btn-meeting btn-sm" onclick="toggleMeetingForm('${init.id}')">+ Solicitar reunión</button></div><div class="meeting-form" id="meeting-form-${init.id}"><div style="height:12px"></div><div class="form-row"><input type="text" class="form-input" id="meet-name-${init.id}" placeholder="Tu nombre" /><input type="email" class="form-input" id="meet-email-${init.id}" placeholder="Tu email" /></div><div class="form-row" style="grid-template-columns:1fr"><input type="text" class="form-input" id="meet-time-${init.id}" placeholder="Horario preferido" /></div><div class="form-row" style="grid-template-columns:1fr"><textarea class="comment-textarea" id="meet-msg-${init.id}" placeholder="Mensaje opcional..." style="min-height:60px"></textarea></div><div style="text-align:right;margin-top:4px"><button class="btn btn-meeting btn-sm" onclick="submitMeeting('${init.id}')">📅 Enviar solicitud</button></div></div></div><div class="action-row"><button class="btn btn-approve" onclick="submitValidation('${init.id}','approved')">✅ Aprobar</button><button class="btn btn-reject" onclick="submitValidation('${init.id}','rejected')">❌ Rechazar</button><button class="btn btn-info" onclick="submitValidation('${init.id}','needs_info')">🔍 Pedir más info</button></div>`;}
+function toggleCard(id){document.getElementById('card-'+id).classList.toggle('expanded');}
+function toggleMeetingForm(id){const form=document.getElementById('meeting-form-'+id);form.classList.toggle('show');if(form.classList.contains('show')&&currentUser){document.getElementById('meet-name-'+id).value=currentUser.name||'';document.getElementById('meet-email-'+id).value=currentUser.email||'';}}
+async function submitComment(initiativeId){const ta=document.getElementById('comment-'+initiativeId);const comment=ta.value.trim();if(!comment){showToast('Escribí un comentario primero','error');return;}try{const res=await fetch('/api/validators/comment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({initiative_id:initiativeId,validator_email:currentUser.email,comment})});if(res.ok){ta.value='';showToast('Comentario enviado ✓','success');loadInitiatives(currentUser.email);}else{showToast('Error al enviar','error');}}catch(e){showToast('Error de conexión','error');}}
+async function submitMeeting(initiativeId){const time=document.getElementById('meet-time-'+initiativeId).value.trim();const email=document.getElementById('meet-email-'+initiativeId).value.trim();const msg=document.getElementById('meet-msg-'+initiativeId).value.trim();if(!time){showToast('Indicá un horario preferido','error');return;}try{const res=await fetch('/api/validators/meeting-request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({initiative_id:initiativeId,validator_email:email||currentUser.email,preferred_time:time,message:msg})});if(res.ok){showToast('Solicitud enviada ✓','success');document.getElementById('meeting-form-'+initiativeId).classList.remove('show');}else{showToast('Error al enviar','error');}}catch(e){showToast('Error de conexión','error');}}
+async function submitValidation(initiativeId,action){const comment=prompt({approved:'Comentario para aprobar (opcional):',rejected:'Motivo del rechazo:',needs_info:'¿Qué información necesitás?'}[action]||'Comentario:');if(comment===null)return;try{const res=await fetch(`/api/validators/initiatives?email=${encodeURIComponent(currentUser.email)}`);const initiatives=await res.json();const init=initiatives.find(i=>i.id===initiativeId);if(!init||!init.my_validation){showToast('No tenés validación asignada','error');return;}const valId=init.my_validation.id;const upd=await fetch(`/api/validations/${valId}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:action,validator_name:currentUser.name||currentUser.email,validator_email:currentUser.email,comment:comment||''})});if(upd.ok){showToast({approved:'✅ Aprobado',rejected:'❌ Rechazado',needs_info:'🔍 Solicitud enviada'}[action],'success');loadInitiatives(currentUser.email);}else{showToast('Error al actualizar','error');}}catch(e){showToast('Error de conexión','error');}}
+let toastTimer;
+function showToast(msg,type='info'){const t=document.getElementById('toast');t.textContent=msg;t.className='show '+type;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{t.className='';},3200);}
+function escHtml(s){if(!s)return '';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+document.addEventListener('DOMContentLoaded',()=>{document.getElementById('login-email').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});const session=loadSession();if(session){currentUser=session;enterPortal(session);}});
+</script>
+</body>
+</html>
