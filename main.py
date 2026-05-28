@@ -63,6 +63,19 @@ def init_db():
     c.execute("""CREATE TABLE IF NOT EXISTS memory_entries (
         id TEXT PRIMARY KEY, initiative_id TEXT, entry_type TEXT,
         content_json TEXT, created_at TEXT, tags TEXT)""")
+    c.execute("""CREATE TABLE IF NOT EXISTS validator_config (
+        id TEXT PRIMARY KEY,
+        email TEXT UNIQUE NOT NULL,
+        name TEXT,
+        team TEXT,
+        created_at TEXT)""")
+    c.execute("""CREATE TABLE IF NOT EXISTS validator_comments (
+        id TEXT PRIMARY KEY,
+        initiative_id TEXT,
+        validator_email TEXT,
+        validator_name TEXT,
+        comment TEXT,
+        created_at TEXT)""")
     conn.commit()
     conn.close()
 
@@ -245,7 +258,7 @@ def create_initiative(body: CreateInitiative):
 @app.get("/api/initiatives")
 def list_initiatives(status: Optional[str] = None, risk_level: Optional[str] = None,
                      team: Optional[str] = None, search: Optional[str] = None):
-    conn = get_db()
+    conn = get_db()    
     q = "SELECT * FROM initiatives WHERE 1=1"
     params = []
     if status:
@@ -509,11 +522,177 @@ def diagnose_endpoint(body: DiagnoseRequest):
     return result
 
 
-# ── Static files: agent at /agent, dashboard at / ─────────────────────────────
+
+# ── Validator Config ───────────────────────────────────────────────────────────
+
+class ValidatorAuth(BaseModel):
+    email: str
+
+class ValidatorConfig(BaseModel):
+    email: str
+    name: Optional[str] = ""
+    team: Optional[str] = ""
+
+class ValidatorComment(BaseModel):
+    initiative_id: str
+    validator_email: str
+    comment: str
+
+class MeetingRequest(BaseModel):
+    initiative_id: str
+    validator_email: str
+    preferred_time: str
+    message: Optional[str] = ""
+
+
+class AdminLogin(BaseModel):
+    email: str
+    password: str
+
+
+@app.post("/api/auth/validator")
+def auth_validator(body: ValidatorAuth):
+    conn = get_db()
+    row = conn.execute(
+        "SELECT * FROM validator_config WHERE LOWER(email) = LOWER(?)", (body.email,)
+    ).fetchone()
+    conn.close()
+    if row:
+        return {"authorized": True, "name": row["name"], "team": row["team"], "email": row["email"]}
+    return {"authorized": False}
+
+
+@app.get("/api/validators/initiatives")
+def validators_initiatives(email: str):
+    conn = get_db()
+    row = conn.execute(
+        "SELECT * FROM validator_config WHERE LOWER(email) = LOWER(?)", (email,)
+    ).fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(403, "Email not authorized")
+    team = row["team"] or ""
+
+    initiatives = conn.execute(
+        """SELECT DISTINCT i.* FROM initiatives i
+           JOIN validations v ON v.initiative_id = i.id
+           WHERE LOWER(v.team_name) = LOWER(?) AND v.status IN ('pending','needs_info')
+           ORDER BY i.created_at DESC""",
+        (team,)
+    ).fetchall()
+
+    result = []
+    for init in initiatives:
+        d = dict(init)
+        my_val = conn.execute(
+            "SELECT * FROM validations WHERE initiative_id = ? AND LOWER(team_name) = LOWER(?)",
+            (init["id"], team)
+        ).fetchone()
+        d["my_validation"] = dict(my_val) if my_val else None
+        d["validations"] = [dict(v) for v in conn.execute(
+            "SELECT * FROM validations WHERE initiative_id = ?", (init["id"],)
+        ).fetchall()]
+        d["validator_comments"] = [dict(c) for c in conn.execute(
+            "SELECT * FROM validator_comments WHERE initiative_id = ? ORDER BY created_at ASC",
+            (init["id"],)
+        ).fetchall()]
+        result.append(d)
+
+    conn.close()
+    return result
+
+
+@app.post("/api/validators/comment", status_code=201)
+def add_validator_comment(body: ValidatorComment):
+    conn = get_db()
+    row = conn.execute(
+        "SELECT name FROM validator_config WHERE LOWER(email) = LOWER(?)", (body.validator_email,)
+    ).fetchone()
+    validator_name = row["name"] if row else body.validator_email
+    cid = str(uuid.uuid4())
+    conn.execute(
+        """INSERT INTO validator_comments (id, initiative_id, validator_email, validator_name, comment, created_at)
+           VALUES (?,?,?,?,?,?)""",
+        (cid, body.initiative_id, body.validator_email, validator_name, body.comment, now_iso())
+    )
+    conn.commit()
+    conn.close()
+    return {"id": cid}
+
+
+@app.post("/api/validators/meeting-request", status_code=201)
+def validator_meeting_request(body: MeetingRequest):
+    conn = get_db()
+    rid = str(uuid.uuid4())
+    content = json.dumps({
+        "validator_email": body.validator_email,
+        "preferred_time": body.preferred_time,
+        "message": body.message,
+        "type": "validator_meeting_request"
+    })
+    conn.execute(
+        """INSERT INTO memory_entries (id, initiative_id, entry_type, content_json, created_at, tags)
+           VALUES (?,?,?,?,?,?)""",
+        (rid, body.initiative_id, "meeting_request", content, now_iso(), "meeting,validator")
+    )
+    conn.commit()
+    conn.close()
+    return {"id": rid}
+
+
+@app.post("/api/auth/admin")
+def admin_login(body: AdminLogin):
+    admin_email = os.environ.get("ADMIN_EMAIL", "admin@greenlight.com")
+    admin_password = os.environ.get("ADMIN_PASSWORD", "greenlight2024")
+    if body.email.lower() == admin_email.lower() and body.password == admin_password:
+        return {"authorized": True}
+    raise HTTPException(401, "Credenciales incorrectas")
+
+
+@app.get("/api/config/validators")
+def list_validators():
+    conn = get_db()
+    rows = [dict(r) for r in conn.execute(
+        "SELECT * FROM validator_config ORDER BY created_at DESC"
+    ).fetchall()]
+    conn.close()
+    return rows
+
+
+@app.post("/api/config/validators", status_code=201)
+def add_validator(body: ValidatorConfig):
+    conn = get_db()
+    existing = conn.execute(
+        "SELECT id FROM validator_config WHERE LOWER(email) = LOWER(?)", (body.email,)
+    ).fetchone()
+    if existing:
+        conn.close()
+        raise HTTPException(400, "Email already configured")
+    vid = str(uuid.uuid4())
+    conn.execute(
+        """INSERT INTO validator_config (id, email, name, team, created_at) VALUES (?,?,?,?,?)""",
+        (vid, body.email.lower(), body.name or "", body.team or "", now_iso())
+    )
+    conn.commit()
+    conn.close()
+    return {"id": vid, "email": body.email, "name": body.name, "team": body.team}
+
+
+@app.delete("/api/config/validators/{validator_id}")
+def delete_validator(validator_id: str):
+    conn = get_db()
+    conn.execute("DELETE FROM validator_config WHERE id = ?", (validator_id,))
+    conn.commit()
+    conn.close()
+    return {"deleted": True}
+
+
+# ── Static files: agent at /agent, validators at /validators, dashboard at / ───
 
 FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 AGENT_DIR = os.path.join(FRONTEND_DIR, "agent")
 DASHBOARD_DIR = os.path.join(FRONTEND_DIR, "dashboard")
+VALIDATORS_DIR = os.path.join(FRONTEND_DIR, "validators")
 
 
 @app.get("/agent")
@@ -530,7 +709,17 @@ def serve_agent_path(path: str):
     return FileResponse(os.path.join(AGENT_DIR, "index.html"))
 
 
-# Mount dashboard static files last (catches everything else)
+@app.get("/validators")
+@app.get("/validators/")
+def serve_validators():
+    return FileResponse(os.path.join(VALIDATORS_DIR, "index.html"))
+
+
+@app.get("/")
+def root():
+    return FileResponse(os.path.join(DASHBOARD_DIR, "index.html"))
+
+
 app.mount("/", StaticFiles(directory=DASHBOARD_DIR, html=True), name="dashboard")
 
 
